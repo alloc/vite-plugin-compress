@@ -1,0 +1,46 @@
+{
+  "name": "vite-plugin-compress",
+  "version": "2.0.0",
+  "description": "Compress your bundle + assets from Vite",
+  "author": "Alec Larson",
+  "license": "MIT",
+  "repository": "alloc/vite-plugin-compress",
+  "main": "dist/plugin.js",
+  "files": [
+    "src",
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p .",
+    "prepare": "yarn build"
+  },
+  "peerDependencies": {
+    "vite": ">2.0.0-0"
+  },
+  "dependencies": {
+    "@types/svgo": "^1.3.3",
+    "chalk": "^4.1.0",
+    "imagemin": "^7.0.1",
+    "imagemin-pngquant": "^9.0.1",
+    "recrawl-sync": "^2.0.2",
+    "svgo": "^1.3.2"
+  },
+  "devDependencies": {
+    "@alloc/prettier-config": "^1.0.0",
+    "@types/imagemin": "^7.0.0",
+    "@types/node": "^14.14.20",
+    "prettier": "^2.0.5",
+    "typescript": "^4.0.0",
+    "vite": "latest"
+  },
+  "prettier": "@alloc/prettier-config",
+  "keywords": [
+    "vite",
+    "vite-plugin",
+    "compress",
+    "brotli",
+    "imagemin",
+    "pngquant",
+    "svgo"
+  ]
+}

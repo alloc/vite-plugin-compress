@@ -1,0 +1,21 @@
+{
+  "name": "demo",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "test": "sirv dist"
+  },
+  "dependencies": {
+    "react": "^16.13.1",
+    "react-dom": "^16.13.1"
+  },
+  "devDependencies": {
+    "@types/react": "^16.9.53",
+    "@types/react-dom": "^16.9.8",
+    "sirv-cli": "^1.0.8",
+    "vite": "link:../node_modules/vite",
+    "vite-plugin-compress": "link:.."
+  }
+}
