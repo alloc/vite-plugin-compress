@@ -68,7 +68,8 @@ export default (opts: PluginOptions = {}): Plugin => {
     name: 'vite:compress',
     apply: 'build',
     enforce: 'post',
-    configResolved({ root, logger, build: { outDir } }) {
+    configResolved({ root, logger, build: { outDir, ssr } }) {
+      if (ssr) return
       const outRoot = path.posix.resolve(root, outDir)
 
       this.writeBundle = async function () {
