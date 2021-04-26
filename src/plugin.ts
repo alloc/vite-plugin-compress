@@ -123,6 +123,7 @@ export default (opts: PluginOptions = {}): Plugin => {
           logger.info('\nFiles compressed:')
           const lengths = Array.from(compressed.keys(), name => name.length)
           const maxLength = Math.max(...lengths)
+          const outDir = path.relative(root, outRoot)
           compressed.forEach((ratio, name) => {
             logger.info(
               '  ' +
@@ -132,6 +133,7 @@ export default (opts: PluginOptions = {}): Plugin => {
                 chalk.blueBright(`${Math.floor(100 * ratio)}% smaller`)
             )
           })
+          logger.info('')
         }
       }
 
