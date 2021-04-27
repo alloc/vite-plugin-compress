@@ -36,6 +36,9 @@ export default {
   Minimum file size (in bytes) to be compressed.  
   Defaults to 1501.
 
+- `exclude: string[]`  
+  Globs to exclude certain files from being compressed.
+
 - `extensions: string[]`  
   Additional extensions to compress with Brotli.  
   

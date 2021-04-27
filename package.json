@@ -20,6 +20,7 @@
   "dependencies": {
     "@types/svgo": "^1.3.3",
     "chalk": "^4.1.0",
+    "glob-regex": "^0.3.2",
     "imagemin": "^7.0.1",
     "imagemin-pngquant": "^9.0.1",
     "recrawl-sync": "^2.0.2",

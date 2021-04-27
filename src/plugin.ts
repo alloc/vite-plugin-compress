@@ -3,6 +3,7 @@ import { Options as PngOptions } from 'imagemin-pngquant'
 import { crawl } from 'recrawl-sync'
 import imagemin from 'imagemin'
 import pngquant from 'imagemin-pngquant'
+import globRegex from 'glob-regex'
 import chalk from 'chalk'
 import SVGO from 'svgo'
 import zlib from 'zlib'
@@ -33,6 +34,10 @@ type PluginOptions = {
    */
   threshold?: number
   /**
+   * Globs to exclude certain files from being compressed.
+   */
+  exclude?: string[]
+  /**
    * Additional extensions for Brotli compression.
    */
   extensions?: string[]
@@ -52,6 +57,7 @@ const pngExt = /\.png$/
 const svgExt = /\.svg$/
 
 export default (opts: PluginOptions = {}): Plugin => {
+  const excludeRegex = opts.exclude ? globRegex(opts.exclude) : /^$/
   const extensionRegex = new RegExp(
     '\\.(png|' +
       defaultExts
@@ -80,8 +86,9 @@ export default (opts: PluginOptions = {}): Plugin => {
         await Promise.all(
           files.map(
             async (name): Promise<any> => {
-              if (!extensionRegex.test(name)) return
+              if (!extensionRegex.test(name) || excludeRegex.test(name)) return
               const filePath = path.posix.join(outRoot, name)
+              if (excludeRegex.test(filePath)) return
 
               let { mtimeMs, size: oldSize } = await fsp.stat(filePath)
               if (mtimeMs <= (mtimeCache.get(filePath) || 0)) return
