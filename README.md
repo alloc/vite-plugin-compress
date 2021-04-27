@@ -11,6 +11,8 @@
 - SVGs are further optimized with [svgo](https://github.com/svg/svgo)
 - PNGs are further optimized with [imagemin](https://github.com/imagemin/imagemin)
 - By default, files smaller than 1501 bytes are not compressed, since the [MTU](https://en.wikipedia.org/wiki/Maximum_transmission_unit) of a TCP packet is 1500 bytes
+- Compatible with [vite-ssr](https://github.com/frandiox/vite-ssr)
+  - Just add `exclude: ["ssr-manifest.json"]`
 
 &nbsp;
 
