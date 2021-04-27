@@ -131,7 +131,7 @@ export default (opts: PluginOptions = {}): Plugin => {
           logger.info('\nFiles compressed:')
           const lengths = Array.from(compressed.keys(), name => name.length)
           const maxLength = Math.max(...lengths)
-          const outDir = path.relative(root, outRoot)
+          const outDir = path.posix.relative(root, outRoot)
           compressed.forEach((ratio, name) => {
             logger.info(
               '  ' +
