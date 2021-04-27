@@ -1,4 +1,4 @@
-import type { Plugin } from 'vite'
+import { normalizePath, Plugin } from 'vite'
 import { Options as PngOptions } from 'imagemin-pngquant'
 import { crawl } from 'recrawl-sync'
 import imagemin from 'imagemin'
@@ -76,7 +76,7 @@ export default (opts: PluginOptions = {}): Plugin => {
     enforce: 'post',
     configResolved({ root, logger, build: { outDir, ssr } }) {
       if (ssr) return
-      const outRoot = path.posix.resolve(root, outDir)
+      const outRoot = normalizePath(path.resolve(root, outDir))
 
       this.writeBundle = async function () {
         const files = crawl(outRoot, {
