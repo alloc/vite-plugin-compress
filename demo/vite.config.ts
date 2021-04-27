@@ -7,6 +7,7 @@ const config: UserConfig = {
     viteSSR(),
     compress({
       verbose: true,
+      exclude: ['ssr-manifest.json'],
     }),
   ],
 }
