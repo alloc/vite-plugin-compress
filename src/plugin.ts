@@ -5,10 +5,11 @@ import imagemin from 'imagemin'
 import pngquant from 'imagemin-pngquant'
 import globRegex from 'glob-regex'
 import chalk from 'chalk'
-import SVGO from 'svgo'
 import zlib from 'zlib'
 import path from 'path'
 import fs from 'fs'
+
+import optimizeSvg from './lib/optimizeSvg'
 
 const fsp = fs.promises
 
@@ -68,7 +69,6 @@ export default (opts: PluginOptions = {}): Plugin => {
   )
 
   let pngOptimizer: any
-  let svgOptimizer: SVGO
 
   return {
     name: 'vite:compress',
@@ -84,48 +84,46 @@ export default (opts: PluginOptions = {}): Plugin => {
         })
         const compressed = new Map<string, number>()
         await Promise.all(
-          files.map(
-            async (name): Promise<any> => {
-              if (!extensionRegex.test(name) || excludeRegex.test(name)) return
-              const filePath = path.posix.join(outRoot, name)
-              if (excludeRegex.test(filePath)) return
+          files.map(async (name): Promise<any> => {
+            if (!extensionRegex.test(name) || excludeRegex.test(name)) return
+            const filePath = path.posix.join(outRoot, name)
+            if (excludeRegex.test(filePath)) return
 
-              let { mtimeMs, size: oldSize } = await fsp.stat(filePath)
-              if (mtimeMs <= (mtimeCache.get(filePath) || 0)) return
+            let { mtimeMs, size: oldSize } = await fsp.stat(filePath)
+            if (mtimeMs <= (mtimeCache.get(filePath) || 0)) return
 
-              let compress: ((content: Buffer) => Promise<Buffer>) | undefined
-              if (pngExt.test(name)) {
-                if (opts.pngquant !== false) {
-                  pngOptimizer ??= pngquant(opts.pngquant)
-                  compress = content =>
-                    imagemin.buffer(content, {
-                      plugins: [pngOptimizer],
-                    })
-                }
-              } else if (
-                opts.brotli !== false &&
-                oldSize >= (opts.threshold ?? 1501)
-              ) {
-                compress = brotli
+            let compress: ((content: Buffer) => Promise<Buffer>) | undefined
+            if (pngExt.test(name)) {
+              if (opts.pngquant !== false) {
+                pngOptimizer ??= pngquant(opts.pngquant)
+                compress = content =>
+                  imagemin.buffer(content, {
+                    plugins: [pngOptimizer],
+                  })
               }
-
-              let content: Buffer | undefined
-              if (opts.svgo !== false && svgExt.test(name)) {
-                content = Buffer.from(await optimizeSvg(filePath))
-              } else if (compress) {
-                content = await fsp.readFile(filePath)
-              }
-
-              if (content) {
-                if (compress) {
-                  content = await compress(content)
-                }
-                await fsp.writeFile(filePath, content)
-                mtimeCache.set(filePath, Date.now())
-                compressed.set(name, 1 - content.byteLength / oldSize)
-              }
+            } else if (
+              opts.brotli !== false &&
+              oldSize >= (opts.threshold ?? 1501)
+            ) {
+              compress = brotli
             }
-          )
+
+            let content: Buffer | undefined
+            if (opts.svgo !== false && svgExt.test(name)) {
+              content = Buffer.from(await optimizeSvg(filePath, opts.svgo))
+            } else if (compress) {
+              content = await fsp.readFile(filePath)
+            }
+
+            if (content) {
+              if (compress) {
+                content = await compress(content)
+              }
+              await fsp.writeFile(filePath, content)
+              mtimeCache.set(filePath, Date.now())
+              compressed.set(name, 1 - content.byteLength / oldSize)
+            }
+          })
         )
         if (opts.verbose) {
           logger.info('\nFiles compressed:')
@@ -145,27 +143,6 @@ export default (opts: PluginOptions = {}): Plugin => {
         }
       }
 
-      if (opts.svgo !== false)
-        this.transform = async function (code, id) {
-          if (svgExt.test(id)) {
-            const optimized = await optimizeSvg(id)
-
-            // When the SVG is loaded as a JS module, we need to parse the
-            // file reference so we can update the source code.
-            const fileRef = /__VITE_ASSET__([a-z\d]{8})__/.exec(code)?.[1]
-            if (fileRef) {
-              this.setAssetSource(fileRef, optimized)
-              return code
-            }
-
-            // If no file reference exists, the SVG was inlined.
-            return code.replace(
-              /(;utf8,).+$/,
-              `$1${optimized.replace(/"/g, '\\"')}"`
-            )
-          }
-        }
-
       function brotli(content: Buffer) {
         const params = {
           [zlib.constants.BROTLI_PARAM_MODE]: zlib.constants.BROTLI_MODE_TEXT,
@@ -179,35 +156,8 @@ export default (opts: PluginOptions = {}): Plugin => {
           )
         })
       }
-
-      async function optimizeSvg(filePath: string) {
-        const content = await fsp.readFile(filePath, 'utf8')
-
-        svgOptimizer ??= new SVGO({
-          plugins: Object.entries({
-            removeViewBox: false,
-            removeDimensions: true,
-            ...opts.svgo,
-          }).map(([name, value]): any => ({ [name]: value })),
-        })
-
-        const svg = await svgOptimizer.optimize(content, { path: filePath })
-        return svg.data
-      }
     },
   }
 }
 
 export { PngOptions }
-
-export type SvgOptions = Partial<
-  Remap<UnionToIntersection<import('svgo').PluginConfig>>
->
-
-type Remap<T> = {} & { [P in keyof T]: T[P] }
-
-type UnionToIntersection<T> = (T extends any ? (x: T) => any : never) extends (
-  x: infer R
-) => any
-  ? R
-  : never
