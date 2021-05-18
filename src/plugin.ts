@@ -5,10 +5,11 @@ import imagemin from 'imagemin'
 import pngquant from 'imagemin-pngquant'
 import globRegex from 'glob-regex'
 import chalk from 'chalk'
-import SVGO from 'svgo'
 import zlib from 'zlib'
 import path from 'path'
 import fs from 'fs'
+
+import optimizeSvg from './lib/optimizeSvg';
 
 const fsp = fs.promises
 
@@ -68,7 +69,6 @@ export default (opts: PluginOptions = {}): Plugin => {
   )
 
   let pngOptimizer: any
-  let svgOptimizer: SVGO
 
   return {
     name: 'vite:compress',
@@ -111,7 +111,7 @@ export default (opts: PluginOptions = {}): Plugin => {
 
               let content: Buffer | undefined
               if (opts.svgo !== false && svgExt.test(name)) {
-                content = Buffer.from(await optimizeSvg(filePath))
+                content = Buffer.from(await optimizeSvg(filePath, opts.svgo))
               } else if (compress) {
                 content = await fsp.readFile(filePath)
               }
@@ -179,35 +179,8 @@ export default (opts: PluginOptions = {}): Plugin => {
           )
         })
       }
-
-      async function optimizeSvg(filePath: string) {
-        const content = await fsp.readFile(filePath, 'utf8')
-
-        svgOptimizer ??= new SVGO({
-          plugins: Object.entries({
-            removeViewBox: false,
-            removeDimensions: true,
-            ...opts.svgo,
-          }).map(([name, value]): any => ({ [name]: value })),
-        })
-
-        const svg = await svgOptimizer.optimize(content, { path: filePath })
-        return svg.data
-      }
     },
   }
 }
 
 export { PngOptions }
-
-export type SvgOptions = Partial<
-  Remap<UnionToIntersection<import('svgo').PluginConfig>>
->
-
-type Remap<T> = {} & { [P in keyof T]: T[P] }
-
-type UnionToIntersection<T> = (T extends any ? (x: T) => any : never) extends (
-  x: infer R
-) => any
-  ? R
-  : never
