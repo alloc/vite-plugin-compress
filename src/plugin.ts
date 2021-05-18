@@ -145,27 +145,6 @@ export default (opts: PluginOptions = {}): Plugin => {
         }
       }
 
-      if (opts.svgo !== false)
-        this.transform = async function (code, id) {
-          if (svgExt.test(id)) {
-            const optimized = await optimizeSvg(id)
-
-            // When the SVG is loaded as a JS module, we need to parse the
-            // file reference so we can update the source code.
-            const fileRef = /__VITE_ASSET__([a-z\d]{8})__/.exec(code)?.[1]
-            if (fileRef) {
-              this.setAssetSource(fileRef, optimized)
-              return code
-            }
-
-            // If no file reference exists, the SVG was inlined.
-            return code.replace(
-              /(;utf8,).+$/,
-              `$1${optimized.replace(/"/g, '\\"')}"`
-            )
-          }
-        }
-
       function brotli(content: Buffer) {
         const params = {
           [zlib.constants.BROTLI_PARAM_MODE]: zlib.constants.BROTLI_MODE_TEXT,
