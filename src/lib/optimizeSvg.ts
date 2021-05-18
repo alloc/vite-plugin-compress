@@ -5,7 +5,10 @@ let svgOptimizer: SVGO
 
 const fsp = fs.promises
 
-export default async function optimizeSvg(filePath: string, svgOpts?: SvgOptions) {
+export default async function optimizeSvg(
+  filePath: string,
+  svgOpts?: SvgOptions
+) {
   const content = await fsp.readFile(filePath, 'utf8')
 
   svgOptimizer ??= new SVGO({
