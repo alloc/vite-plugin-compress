@@ -3,6 +3,10 @@ import { crawl } from 'recrawl-sync'
 import imagemin from 'imagemin'
 import webp, { Options as WebpOptions } from 'imagemin-webp'
 import pngquant, { Options as PngOptions } from 'imagemin-pngquant'
+import {
+  minify as minifyHtml,
+  Options as HtmlMinifyOptions,
+} from 'html-minifier-terser'
 import globRegex from 'glob-regex'
 import chalk from 'chalk'
 import SVGO from 'svgo'
@@ -54,10 +58,15 @@ type PluginOptions = {
    * This also sets the `pngquant` option to false.
    */
   webp?: WebpOptions | true
+  /**
+   * Set to minify HTML outputs.
+   */
+  minifyHtml?: HtmlMinifyOptions | true
 }
 
 const mtimeCache = new Map<string, number>()
 const defaultExts = ['html', 'js', 'css', 'svg', 'json']
+const htmlExt = /\.html$/
 const pngExt = /\.png$/
 const svgExt = /\.svg$/
 
@@ -83,6 +92,7 @@ export default (opts: PluginOptions = {}): Plugin => {
     configResolved({ root, logger, build: { outDir, ssr } }) {
       if (ssr) return
       const outRoot = normalizePath(path.resolve(root, outDir))
+      const threshold = opts.threshold ?? 1501
 
       this.writeBundle = async function () {
         const files = crawl(outRoot, {
@@ -100,7 +110,9 @@ export default (opts: PluginOptions = {}): Plugin => {
               if (mtimeMs <= (mtimeCache.get(filePath) || 0)) return
 
               let newFilePath: string | undefined
-              let compress: ((content: Buffer) => Promise<Buffer>) | undefined
+              let compress:
+                | ((content: Buffer) => Buffer | Promise<Buffer>)
+                | undefined
 
               if (pngExt.test(name)) {
                 if (opts.webp) {
@@ -119,11 +131,34 @@ export default (opts: PluginOptions = {}): Plugin => {
                       plugins: [pngOptimizer],
                     })
                 }
-              } else if (
-                opts.brotli !== false &&
-                oldSize >= (opts.threshold ?? 1501)
-              ) {
-                compress = brotli
+              } else {
+                const useBrotli = opts.brotli !== false && oldSize >= threshold
+                if (opts.minifyHtml && htmlExt.test(name)) {
+                  compress = content => {
+                    const html = minifyHtml(content.toString('utf8'), {
+                      collapseBooleanAttributes: true,
+                      collapseWhitespace: true,
+                      keepClosingSlash: true,
+                      minifyCSS: true,
+                      minifyJS: true,
+                      minifyURLs: true,
+                      removeAttributeQuotes: true,
+                      removeComments: true,
+                      removeEmptyAttributes: true,
+                      removeRedundantAttributes: true,
+                      removeScriptTypeAttributes: true,
+                      removeStyleLinkTypeAttributes: true,
+                      useShortDoctype: true,
+                      ...(opts.minifyHtml === true ? {} : opts.minifyHtml),
+                    })
+                    content = Buffer.from(html)
+                    return useBrotli && content.byteLength >= threshold
+                      ? brotli(content)
+                      : content
+                  }
+                } else if (useBrotli) {
+                  compress = brotli
+                }
               }
 
               let content: Buffer | undefined
@@ -140,7 +175,7 @@ export default (opts: PluginOptions = {}): Plugin => {
                 mtimeCache.set(filePath, Date.now())
                 if (newFilePath) {
                   await fsp.unlink(filePath)
-                  name = path.relative((filePath = newFilePath), outRoot)
+                  name = path.relative(outRoot, (filePath = newFilePath))
                 }
                 await fsp.writeFile(filePath, content)
                 compressed.set(name, 1 - content.byteLength / oldSize)
