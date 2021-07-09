@@ -176,12 +176,10 @@ export default (opts: PluginOptions = {}): Plugin => {
                 content = Buffer.from(await optimizeSvg(filePath))
               } else if (compress) {
                 content = await fsp.readFile(filePath)
+                content = await compress(content)
               }
 
               if (content) {
-                if (compress) {
-                  content = await compress(content)
-                }
                 mtimeCache.set(filePath, Date.now())
                 if (newFilePath) {
                   await fsp.unlink(filePath)
