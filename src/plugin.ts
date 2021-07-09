@@ -26,7 +26,7 @@ type PluginOptions = {
    * Useful when your web server handles compression.
    * @default true
    */
-  brotli?: boolean
+  brotli?: boolean | { exclude?: string[] }
   /**
    * Brotli compression quality (from `0` to `11`).
    * @default 11
@@ -72,6 +72,13 @@ const svgExt = /\.svg$/
 
 export default (opts: PluginOptions = {}): Plugin => {
   const excludeRegex = opts.exclude ? globRegex(opts.exclude) : /^$/
+  const brotliExcludeRegex =
+    opts.brotli && opts.brotli !== true && opts.brotli.exclude
+      ? globRegex(opts.brotli.exclude)
+      : opts.brotli !== false
+      ? /^$/
+      : /.+/
+
   const extensionRegex = new RegExp(
     '\\.(png|' +
       defaultExts
@@ -132,7 +139,10 @@ export default (opts: PluginOptions = {}): Plugin => {
                     })
                 }
               } else {
-                const useBrotli = opts.brotli !== false && oldSize >= threshold
+                const useBrotli =
+                  oldSize >= threshold &&
+                  !brotliExcludeRegex.test(name) &&
+                  !brotliExcludeRegex.test(filePath)
                 if (opts.minifyHtml && htmlExt.test(name)) {
                   compress = content => {
                     const html = minifyHtml(content.toString('utf8'), {
