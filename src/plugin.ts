@@ -1,8 +1,8 @@
 import { normalizePath, Plugin } from 'vite'
-import { Options as PngOptions } from 'imagemin-pngquant'
 import { crawl } from 'recrawl-sync'
 import imagemin from 'imagemin'
-import pngquant from 'imagemin-pngquant'
+import webp, { Options as WebpOptions } from 'imagemin-webp'
+import pngquant, { Options as PngOptions } from 'imagemin-pngquant'
 import globRegex from 'glob-regex'
 import chalk from 'chalk'
 import SVGO from 'svgo'
@@ -49,6 +49,11 @@ type PluginOptions = {
    * Set false to disable the PNG optimizer.
    */
   pngquant?: PngOptions | false
+  /**
+   * Set to convert PNG images to WEBP format.
+   * This also sets the `pngquant` option to false.
+   */
+  webp?: WebpOptions | true
 }
 
 const mtimeCache = new Map<string, number>()
@@ -68,6 +73,7 @@ export default (opts: PluginOptions = {}): Plugin => {
   )
 
   let pngOptimizer: any
+  let webpGenerator: any
   let svgOptimizer: SVGO
 
   return {
@@ -87,15 +93,26 @@ export default (opts: PluginOptions = {}): Plugin => {
           files.map(
             async (name): Promise<any> => {
               if (!extensionRegex.test(name) || excludeRegex.test(name)) return
-              const filePath = path.posix.join(outRoot, name)
+              let filePath = path.posix.join(outRoot, name)
               if (excludeRegex.test(filePath)) return
 
               let { mtimeMs, size: oldSize } = await fsp.stat(filePath)
               if (mtimeMs <= (mtimeCache.get(filePath) || 0)) return
 
+              let newFilePath: string | undefined
               let compress: ((content: Buffer) => Promise<Buffer>) | undefined
+
               if (pngExt.test(name)) {
-                if (opts.pngquant !== false) {
+                if (opts.webp) {
+                  webpGenerator ??= webp(
+                    opts.webp === true ? undefined : opts.webp
+                  )
+                  newFilePath = filePath.replace(pngExt, '.webp')
+                  compress = content =>
+                    imagemin.buffer(content, {
+                      plugins: [webpGenerator],
+                    })
+                } else if (opts.pngquant !== false) {
                   pngOptimizer ??= pngquant(opts.pngquant)
                   compress = content =>
                     imagemin.buffer(content, {
@@ -120,8 +137,12 @@ export default (opts: PluginOptions = {}): Plugin => {
                 if (compress) {
                   content = await compress(content)
                 }
-                await fsp.writeFile(filePath, content)
                 mtimeCache.set(filePath, Date.now())
+                if (newFilePath) {
+                  await fsp.unlink(filePath)
+                  name = path.relative((filePath = newFilePath), outRoot)
+                }
+                await fsp.writeFile(filePath, content)
                 compressed.set(name, 1 - content.byteLength / oldSize)
               }
             }
