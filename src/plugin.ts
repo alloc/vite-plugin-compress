@@ -101,7 +101,7 @@ export default (opts: PluginOptions = {}): Plugin => {
       const outRoot = normalizePath(path.resolve(root, outDir))
       const threshold = opts.threshold ?? 1501
 
-      this.writeBundle = async function () {
+      this.closeBundle = async function () {
         const files = crawl(outRoot, {
           skip: ['.DS_Store'],
         })
