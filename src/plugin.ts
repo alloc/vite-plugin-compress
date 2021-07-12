@@ -96,10 +96,21 @@ export default (opts: PluginOptions = {}): Plugin => {
     name: 'vite:compress',
     apply: 'build',
     enforce: 'post',
-    configResolved({ root, logger, build: { outDir, ssr } }) {
+    configResolved({ root, logger, publicDir, build: { outDir, ssr } }) {
       if (ssr) return
       const outRoot = normalizePath(path.resolve(root, outDir))
       const threshold = opts.threshold ?? 1501
+
+      if (publicDir && opts.webp) {
+        const pngFiles = crawl(publicDir, {
+          only: ['*.png'],
+        })
+        this.resolveBuiltUrl = url => {
+          if (url[0] === '/' && pngFiles.includes(url.slice(1))) {
+            return url.replace(pngExt, '.webp')
+          }
+        }
+      }
 
       this.closeBundle = async function () {
         const files = crawl(outRoot, {
