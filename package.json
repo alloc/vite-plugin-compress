@@ -1,6 +1,6 @@
 {
   "name": "vite-plugin-compress",
-  "version": "2.1.0",
+  "version": "2.2.0-0",
   "description": "Compress your bundle + assets from Vite",
   "author": "Alec Larson",
   "license": "MIT",
