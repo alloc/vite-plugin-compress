@@ -66,11 +66,12 @@ type PluginOptions = {
 
 const mtimeCache = new Map<string, number>()
 const defaultExts = ['html', 'js', 'css', 'svg', 'json']
+const dataUriPrefix = 'data:image/svg+xml,'
 const htmlExt = /\.html$/
 const pngExt = /\.png$/
 const svgExt = /\.svg$/
 
-export default (opts: PluginOptions = {}): Plugin => {
+export default (opts: PluginOptions = {}): Plugin[] => {
   const excludeRegex = opts.exclude ? globRegex(opts.exclude) : /^$/
   const brotliExcludeRegex =
     opts.brotli && opts.brotli !== true && opts.brotli.exclude
@@ -92,14 +93,32 @@ export default (opts: PluginOptions = {}): Plugin => {
   let webpGenerator: any
   let svgOptimizer: SVGO
 
-  return {
+  async function optimizeSvg(content: string, filePath: string) {
+    svgOptimizer ??= new SVGO({
+      plugins: Object.entries({
+        removeViewBox: false,
+        removeDimensions: true,
+        ...opts.svgo,
+      }).map(([name, value]): any => ({ [name]: value })),
+    })
+
+    try {
+      const svg = await svgOptimizer.optimize(content, { path: filePath })
+      return svg.data
+    } catch {
+      return content
+    }
+  }
+
+  let outRoot: string
+
+  const prePlugin: Plugin = {
     name: 'vite:compress',
     apply: 'build',
-    enforce: 'post',
-    configResolved({ root, logger, publicDir, build: { outDir, ssr } }) {
+    enforce: 'pre',
+    configResolved({ root, publicDir, build: { outDir, ssr } }) {
       if (ssr) return
-      const outRoot = normalizePath(path.resolve(root, outDir))
-      const threshold = opts.threshold ?? 1501
+      outRoot = normalizePath(path.resolve(root, outDir))
 
       if (publicDir && opts.webp) {
         const pngFiles = crawl(publicDir, {
@@ -111,6 +130,42 @@ export default (opts: PluginOptions = {}): Plugin => {
           }
         }
       }
+
+      if (opts.svgo !== false)
+        // Optimize any inlined SVGs. Non-inlined SVGs are optimized
+        // in the `closeBundle` phase.
+        this.transform = async function (code, id) {
+          if (svgExt.test(id)) {
+            let exported = /^export default (".+?")$/.exec(code)?.[1]
+            if (!exported) return
+            const isRaw = /(\?|&)raw(?:&|$)/.test(id)
+            try {
+              let content = JSON.parse(exported)
+              if (!isRaw) {
+                if (!content.startsWith(dataUriPrefix)) return
+                content = decodeURIComponent(
+                  content.slice(dataUriPrefix.length)
+                )
+              }
+              let optimized = await optimizeSvg(content, id)
+              if (!isRaw) {
+                optimized = dataUriPrefix + encodeURIComponent(optimized)
+              }
+              console.log('optimizeSvg:', { id, content, optimized })
+              return code.replace(exported, JSON.stringify(optimized))
+            } catch {}
+          }
+        }
+    },
+  }
+
+  const postPlugin: Plugin = {
+    name: 'vite:compress',
+    apply: 'build',
+    enforce: 'post',
+    configResolved({ root, logger, build: { ssr, watch } }) {
+      if (ssr) return
+      const threshold = opts.threshold ?? 1501
 
       this.closeBundle = async function () {
         const files = crawl(outRoot, {
@@ -184,7 +239,10 @@ export default (opts: PluginOptions = {}): Plugin => {
 
               let content: Buffer | undefined
               if (opts.svgo !== false && svgExt.test(name)) {
-                content = Buffer.from(await optimizeSvg(filePath))
+                content = await fsp.readFile(filePath)
+                content = Buffer.from(
+                  await optimizeSvg(content.toString('utf8'), filePath)
+                )
               } else if (compress) {
                 content = await fsp.readFile(filePath)
                 content = await compress(content)
@@ -220,27 +278,6 @@ export default (opts: PluginOptions = {}): Plugin => {
         }
       }
 
-      if (opts.svgo !== false)
-        this.transform = async function (code, id) {
-          if (svgExt.test(id)) {
-            const optimized = await optimizeSvg(id)
-
-            // When the SVG is loaded as a JS module, we need to parse the
-            // file reference so we can update the source code.
-            const fileRef = /__VITE_ASSET__([a-z\d]{8})__/.exec(code)?.[1]
-            if (fileRef) {
-              this.setAssetSource(fileRef, optimized)
-              return code
-            }
-
-            // If no file reference exists, the SVG was inlined.
-            return code.replace(
-              /(;utf8,).+$/,
-              `$1${optimized.replace(/"/g, '\\"')}"`
-            )
-          }
-        }
-
       function brotli(content: Buffer) {
         const params = {
           [zlib.constants.BROTLI_PARAM_MODE]: zlib.constants.BROTLI_MODE_TEXT,
@@ -254,23 +291,10 @@ export default (opts: PluginOptions = {}): Plugin => {
           )
         })
       }
-
-      async function optimizeSvg(filePath: string) {
-        const content = await fsp.readFile(filePath, 'utf8')
-
-        svgOptimizer ??= new SVGO({
-          plugins: Object.entries({
-            removeViewBox: false,
-            removeDimensions: true,
-            ...opts.svgo,
-          }).map(([name, value]): any => ({ [name]: value })),
-        })
-
-        const svg = await svgOptimizer.optimize(content, { path: filePath })
-        return svg.data
-      }
     },
   }
+
+  return [prePlugin, postPlugin]
 }
 
 export { PngOptions }
