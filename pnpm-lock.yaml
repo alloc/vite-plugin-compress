@@ -2,12 +2,14 @@ lockfileVersion: 5.3
 
 specifiers:
   '@alloc/prettier-config': ^1.0.0
+  '@types/debug': ^4.1.7
   '@types/html-minifier-terser': ^5.1.2
   '@types/imagemin': ^7.0.0
   '@types/imagemin-webp': ^5.1.2
   '@types/node': ^14.14.20
   '@types/svgo': ^1.3.3
   chalk: ^4.1.0
+  debug: ^4.3.2
   glob-regex: ^0.3.2
   html-minifier-terser: ^5.1.1
   imagemin: ^7.0.1
@@ -22,6 +24,7 @@ specifiers:
 dependencies:
   '@types/svgo': 1.3.3
   chalk: 4.1.0
+  debug: 4.3.2
   glob-regex: 0.3.2
   html-minifier-terser: 5.1.1
   imagemin: 7.0.1
@@ -32,6 +35,7 @@ dependencies:
 
 devDependencies:
   '@alloc/prettier-config': 1.0.0
+  '@types/debug': 4.1.7
   '@types/html-minifier-terser': 5.1.2
   '@types/imagemin': 7.0.0
   '@types/imagemin-webp': 5.1.2
@@ -76,6 +80,12 @@ packages:
     engines: {node: '>=4'}
     dev: false
 
+  /@types/debug/4.1.7:
+    resolution: {integrity: sha512-9AonUzyTjXXhEOa0DnqpzZi6VHlqKMswga9EXjpXnnqxwLtdvPPtlO8evrI5D9S6asFRCQ6v+wpiUKbw+vKqyg==}
+    dependencies:
+      '@types/ms': 0.7.31
+    dev: true
+
   /@types/glob/7.1.3:
     resolution: {integrity: sha512-SEYeGAIQIQX8NN6LDKprLjbrd5dARM5EXsd8GI/A5l0apYI1fGMWgPHSe4ZKL4eozlAyI+doUE9XbYS4xCkQ1w==}
     dependencies:
@@ -108,6 +118,10 @@ packages:
   /@types/minimatch/3.0.3:
     resolution: {integrity: sha512-tHq6qdbT9U1IRSGf14CL0pUlULksvY9OZ+5eEgl1N7t+OA3tGvNpxJCzuKQlsNgCVwbAs670L1vcVQi8j9HjnA==}
     dev: false
+
+  /@types/ms/0.7.31:
+    resolution: {integrity: sha512-iiUgKzV9AuaEkZqkOLDIvlQiL6ltuZd9tGcW3gwpnX8JbuiuhFlEGmmFXEXkN50Cvq7Os88IY2v0dkDqXYWVgA==}
+    dev: true
 
   /@types/node/14.14.22:
     resolution: {integrity: sha512-g+f/qj/cNcqKkc3tFqlXOYjrmZA+jNBiDzbP3kH+B+otKFqAdPgVTGP1IeKRdMml/aE69as5S4FqtxAbl+LaMw==}
@@ -530,6 +544,18 @@ packages:
       bin-build: 3.0.0
       bin-wrapper: 4.1.0
       logalot: 2.1.0
+    dev: false
+
+  /debug/4.3.2:
+    resolution: {integrity: sha512-mOp8wKcvj7XxC78zLgw/ZA+6TSgkoE2C/ienthhRD298T7UNwAg9diBpLRxC0mOezLl4B0xV7M0cCO6P/O0Xhw==}
+    engines: {node: '>=6.0'}
+    peerDependencies:
+      supports-color: '*'
+    peerDependenciesMeta:
+      supports-color:
+        optional: true
+    dependencies:
+      ms: 2.1.2
     dev: false
 
   /decamelize/1.2.0:
@@ -1558,6 +1584,10 @@ packages:
     hasBin: true
     dependencies:
       minimist: 1.2.5
+    dev: false
+
+  /ms/2.1.2:
+    resolution: {integrity: sha512-sGkPx+VjMtmA6MX27oA4FBFELFCZZ4S4XqeGOXCv68tT+jb3vk/RyaKWP0PTKyWtmLSM0b+adUTEvbs1PEaH2w==}
     dev: false
 
   /nanoid/3.1.23:

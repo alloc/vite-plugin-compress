@@ -7,6 +7,7 @@ import {
   minify as minifyHtml,
   Options as HtmlMinifyOptions,
 } from 'html-minifier-terser'
+import createDebug from 'debug'
 import globRegex from 'glob-regex'
 import chalk from 'chalk'
 import SVGO from 'svgo'
@@ -15,6 +16,7 @@ import path from 'path'
 import fs from 'fs'
 
 const fsp = fs.promises
+const debug = createDebug('vite:plugin-compress')
 
 type PluginOptions = {
   /**
@@ -105,7 +107,8 @@ export default (opts: PluginOptions = {}): Plugin[] => {
     try {
       const svg = await svgOptimizer.optimize(content, { path: filePath })
       return svg.data
-    } catch {
+    } catch (err) {
+      debug(`Failed to optimize "${filePath}". ` + err.message)
       return content
     }
   }
@@ -153,7 +156,9 @@ export default (opts: PluginOptions = {}): Plugin[] => {
               }
               console.log('optimizeSvg:', { id, content, optimized })
               return code.replace(exported, JSON.stringify(optimized))
-            } catch {}
+            } catch (err) {
+              debug(`Failed to transform "${id}". ` + err.message)
+            }
           }
         }
     },
