@@ -172,7 +172,14 @@ export default (opts: PluginOptions = {}): Plugin[] => {
       if (ssr) return
       const threshold = opts.threshold ?? 1501
 
-      this.closeBundle = async function () {
+      this.buildStart = () => {
+        this.closeBundle = closeBundle
+      }
+      this.buildEnd = error => {
+        if (error) this.closeBundle = undefined
+      }
+
+      async function closeBundle() {
         const files = crawl(outRoot, {
           skip: ['.DS_Store'],
         })
