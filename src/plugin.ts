@@ -168,7 +168,7 @@ export default (opts: PluginOptions = {}): Plugin[] => {
     name: 'vite:compress',
     apply: 'build',
     enforce: 'post',
-    configResolved({ root, logger, build: { ssr, watch } }) {
+    configResolved({ root, logger, build: { ssr } }) {
       if (ssr) return
       const threshold = opts.threshold ?? 1501
 
