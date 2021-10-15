@@ -64,6 +64,10 @@ export default {
   Options for the PNG optimizer.  
   More info [here](https://www.npmjs.com/package/imagemin-pngquant#options).
 
+- `webp: boolean | object`
+
+- `minifyHtml: boolean | object`
+
 - `brotli: boolean`  
   Set to false to disable Brotli compression.
 
