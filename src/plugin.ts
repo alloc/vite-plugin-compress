@@ -190,7 +190,6 @@ export default (opts: PluginOptions = {}): Plugin[] => {
           collapseWhitespace: true,
           keepClosingSlash: true,
           minifyJS: true,
-          minifyURLs: true,
           removeAttributeQuotes: true,
           removeComments: true,
           removeEmptyAttributes: true,
