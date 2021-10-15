@@ -18,10 +18,12 @@
     "vite": ">2.0.0-0"
   },
   "dependencies": {
+    "@types/clean-css": "^4.2.5",
     "@types/html-minifier-terser": "^5.1.2",
     "@types/imagemin-webp": "^5.1.2",
     "@types/svgo": "^1.3.3",
     "chalk": "^4.1.0",
+    "clean-css": "^4.2.3",
     "debug": "^4.3.2",
     "glob-regex": "^0.3.2",
     "html-minifier-terser": "^5.1.1",
