@@ -73,3 +73,15 @@ export default {
 
 - `verbose: boolean`  
   Log compressed files and their compression ratios.
+
+&nbsp;
+
+## Tip: React SSR
+
+If the `minifyHtml` option is defined, include these options or you will get mismatch errors when hydrating on the client-side.
+
+```ts
+collapseWhitespace: false,
+ignoreCustomComments: [/^ $/],
+removeEmptyAttributes: false,
+```
