@@ -3,10 +3,8 @@ import { crawl } from 'recrawl-sync'
 import imagemin from 'imagemin'
 import webp, { Options as WebpOptions } from 'imagemin-webp'
 import pngquant, { Options as PngOptions } from 'imagemin-pngquant'
-import {
-  minify as minifyHtml,
-  Options as HtmlMinifyOptions,
-} from 'html-minifier-terser'
+import { minify as minifyHtml } from 'html-minifier-terser'
+import { minifyCss, MinifyCSSOption } from './css'
 import createDebug from 'debug'
 import globRegex from 'glob-regex'
 import chalk from 'chalk'
@@ -17,6 +15,10 @@ import fs from 'fs'
 
 const fsp = fs.promises
 const debug = createDebug('vite:plugin-compress')
+
+type HtmlMinifyOptions = import('html-minifier-terser').Options extends infer Options
+  ? Omit<Options, 'minifyCSS'> & { minifyCSS?: MinifyCSSOption }
+  : never
 
 type PluginOptions = {
   /**
@@ -61,7 +63,8 @@ type PluginOptions = {
    */
   webp?: WebpOptions | true
   /**
-   * Set to minify HTML outputs.
+   * Set to minify HTML outputs using `html-minifier-terser` and
+   * optionally `clean-css`.
    */
   minifyHtml?: HtmlMinifyOptions | true
 }
@@ -179,6 +182,27 @@ export default (opts: PluginOptions = {}): Plugin[] => {
         if (error) this.closeBundle = undefined
       }
 
+      let htmlOpts: HtmlMinifyOptions | undefined
+      if (opts.minifyHtml) {
+        const overrides = opts.minifyHtml === true ? {} : opts.minifyHtml
+        htmlOpts = {
+          collapseBooleanAttributes: true,
+          collapseWhitespace: true,
+          keepClosingSlash: true,
+          minifyJS: true,
+          minifyURLs: true,
+          removeAttributeQuotes: true,
+          removeComments: true,
+          removeEmptyAttributes: true,
+          removeRedundantAttributes: true,
+          removeScriptTypeAttributes: true,
+          removeStyleLinkTypeAttributes: true,
+          useShortDoctype: true,
+          ...overrides,
+          minifyCSS: minifyCss(overrides.minifyCSS),
+        }
+      }
+
       async function closeBundle() {
         const files = crawl(outRoot, {
           skip: ['.DS_Store'],
@@ -223,22 +247,7 @@ export default (opts: PluginOptions = {}): Plugin[] => {
                   !brotliExcludeRegex.test(filePath)
                 if (opts.minifyHtml && htmlExt.test(name)) {
                   compress = content => {
-                    const html = minifyHtml(content.toString('utf8'), {
-                      collapseBooleanAttributes: true,
-                      collapseWhitespace: true,
-                      keepClosingSlash: true,
-                      minifyCSS: true,
-                      minifyJS: true,
-                      minifyURLs: true,
-                      removeAttributeQuotes: true,
-                      removeComments: true,
-                      removeEmptyAttributes: true,
-                      removeRedundantAttributes: true,
-                      removeScriptTypeAttributes: true,
-                      removeStyleLinkTypeAttributes: true,
-                      useShortDoctype: true,
-                      ...(opts.minifyHtml === true ? {} : opts.minifyHtml),
-                    })
+                    const html = minifyHtml(content.toString('utf8'), htmlOpts)
                     content = Buffer.from(html)
                     return useBrotli && content.byteLength >= threshold
                       ? brotli(content)
