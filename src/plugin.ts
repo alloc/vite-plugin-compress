@@ -67,6 +67,10 @@ type PluginOptions = {
    * optionally `clean-css`.
    */
   minifyHtml?: HtmlMinifyOptions | true
+  /**
+   * Suffix to add to compressed file instead of overwriting.
+   */
+  outputSuffix?: string
 }
 
 const mtimeCache = new Map<string, number>()
@@ -274,6 +278,7 @@ export default (opts: PluginOptions = {}): Plugin[] => {
                   await fsp.unlink(filePath)
                   name = path.relative(outRoot, (filePath = newFilePath))
                 }
+                filePath += opts.outputSuffix || ''
                 await fsp.writeFile(filePath, content)
                 compressed.set(name, 1 - content.byteLength / oldSize)
               }
